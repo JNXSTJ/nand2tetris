@@ -451,8 +451,17 @@ class CodeWriter(object):
             ]
 
         def push_temp(command: Command) -> [str]:
+            address = 5 + command.arg2()
+            # RAM[sp] = RAM[address]
+            # sp = sp + 1
             return [
-                f'push RAM[5+{command.arg2()}]'
+                f'@{address}',
+                'D=M',
+                '@SP',
+                'A=M',
+                'M=D',
+                '@SP',
+                'M=M+1'
             ]
 
         def push_pointer(command: Command) -> [str]:
@@ -537,8 +546,16 @@ class CodeWriter(object):
             ]
 
         def pop_temp(command: Command) -> [str]:
+            address = 5 + command.arg2()
+            # sp = sp - 1
+            # RAM[sp] = RAM[address]
             return [
-                f'pop RAM[5+{command.arg2()}]'
+                    '@SP',
+                    'M=M-1',
+                    'A=M',
+                    'D=M',
+                    f'@{address}',
+                    'M=D'
             ]
 
         def pop_pointer(command: Command) -> [str]:
@@ -608,7 +625,7 @@ def main():
     import os
     dirname = os.path.dirname(__file__)
     dirname = os.path.dirname(dirname)
-    path = os.path.join(dirname, R'projects\07\PointerTest\PointerTest.vm')
+    path = os.path.join(dirname, R'projects\07\BasicTest\BasicTest.vm')
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
