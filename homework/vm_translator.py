@@ -5,6 +5,7 @@ C_ARITHMATIC = "C_ARITHMATIC"
 C_PUSH = "C_PUSH"
 C_POP = "C_POP"
 C_COMMENT = "C_COMMENT"
+C_EMPTY_LINE = "C_EMPTY_LINE"
 
 ADD = "add"
 SUB = "sub"
@@ -57,17 +58,28 @@ ARG = 2
 THIS = 3
 THAT = 4
 
+g_label_idx = 0
+def get_label():
+    global g_label_idx
+    g_label_idx += 1
+    return f'(label_{g_label_idx})'
+
 
 class Command(object):
     def __init__(self, line: str):
         self._command_type = ""
         self._arg1: str = ""
         self._arg2: int = -1
+        self._line = line
         self.init(line)
 
     def init(self, line):
-        line = line.strip(' ')
-        if line.startswith('#'):
+        line = line.strip(' \n')
+        print(line)
+        if len(line) == 0:
+            self._command_type = C_EMPTY_LINE
+            return
+        if line.startswith('//'):
             self._command_type = C_COMMENT
             return
         elif line.startswith('push'):
@@ -108,15 +120,10 @@ class Parser(object):
         with open(self.path, 'r') as f:
             for line in f.readlines():
                 command = Command(line)
-                if command.command_type() == C_ARITHMATIC:
-                    pass
-                elif command.command_type() == C_PUSH:
-                    pass
-                elif command.command_type() == C_POP:
-                    pass
+                self.commands.append(command)
 
     def has_more_lines(self) -> bool:
-        return self.idx < len(self.commands)
+        return self.idx + 1 < len(self.commands) and len(self.commands) > 0
 
     def advance(self):
         self.idx += 1
@@ -153,8 +160,8 @@ class CodeWriter(object):
                 'M=M-1',
                 # RAM[sp] += d
                 '@SP',
-                'A=M'
-                'M=M+D',
+                'A=M',
+                'M=D+M',
                 # sp++
                 '@SP',
                 'M=M+1'
@@ -201,13 +208,28 @@ class CodeWriter(object):
             return [
                 # RAM[sp - 1] = RAM[sp - 1] == RAM[sp - 2]
                 # sp = sp - 1
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M',
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=D-M',
+                f'{get_label()}',
+                f'D;JEQ',
+                'M=0',
+                f'{get_label()}',
+                'M=-1',
             ]
 
         def gt_func(command: Command) -> [str]:
             return
 
         def lt_func(command: Command) -> [str]:
-            return
+            return [
+
+            ]
 
         def and_func(command: Command) -> [str]:
             return [
@@ -285,7 +307,7 @@ class CodeWriter(object):
         }
         assert command.command_type() == C_ARITHMATIC
         func = operands[command.arg1()]
-        self.lines.extend(func())
+        self.lines.extend(func(command))
 
     def write_push(self, command: Command) -> [str]:
         def push_constant(command: Command) -> [str]:
@@ -455,17 +477,23 @@ class VMTranslator(object):
         while self.parser.has_more_lines():
             self.parser.advance()
             command = self.parser.command()
+            if command.command_type() == C_COMMENT or command.command_type() == C_EMPTY_LINE:
+                continue
+            if False:
+                self.codeWriter.lines.append(command._line)
             if command.command_type() == C_ARITHMATIC:
                 self.codeWriter.write_arithmatic(command)
             elif command.command_type() == C_PUSH:
                 self.codeWriter.write_push(command)
             elif command.command_type() == C_POP:
                 self.codeWriter.write_pop(command)
+            else:
+                assert False, "unknown command type"
         self.codeWriter.close()
 
 
 def main():
-    path = r'test.vm'
+    path = r'C:\Users\taojian\Desktop\nand2tetris\projects\07\StackTest\StackTest.vm'
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
