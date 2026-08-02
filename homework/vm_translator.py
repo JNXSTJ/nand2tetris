@@ -625,7 +625,7 @@ def main():
     import os
     dirname = os.path.dirname(__file__)
     dirname = os.path.dirname(dirname)
-    path = os.path.join(dirname, R'projects\07\BasicTest\BasicTest.vm')
+    path = os.path.join(dirname, R'projects\07\SimpleAdd\SimpleAdd.vm')
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
