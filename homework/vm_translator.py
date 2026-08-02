@@ -442,7 +442,15 @@ class CodeWriter(object):
 
         def push_static(command: Command) -> [str]:
             return [
-                f'push {self.base_name}.{command.arg2()}'
+                # RAM[SP] = StaticTest.2
+                # f'push {self.base_name}.{command.arg2()}',
+                f'@{self.base_name}.{command.arg2()}',
+                'D=M',
+                '@SP',
+                'A=M',
+                'M=D',
+                '@SP',
+                'M=M+1'
             ]
 
         def push_temp(command: Command) -> [str]:
@@ -525,7 +533,14 @@ class CodeWriter(object):
 
         def pop_static(command: Command) -> [str]:
             return [
-                f'pop {self.base_name}.{command.arg2()}'
+                # StaticTest.2 = RAM[sp - 1]
+                # f'pop {self.base_name}.{command.arg2()}'
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M',
+                f'@{self.base_name}.{command.arg2()}',
+                'M=D'
             ]
 
         def pop_temp(command: Command) -> [str]:
@@ -585,7 +600,7 @@ def main():
     import os
     dirname = os.path.dirname(__file__)
     dirname = os.path.dirname(dirname)
-    path = os.path.join(dirname, R'projects\07\StackTest\StackTest.vm')
+    path = os.path.join(dirname, R'projects\07\StaticTest\StaticTest.vm')
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
