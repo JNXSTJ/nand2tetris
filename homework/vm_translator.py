@@ -1,5 +1,6 @@
 # coding=utf-8
 import os.path
+import os
 
 C_ARITHMATIC = "C_ARITHMATIC"
 C_PUSH = "C_PUSH"
@@ -62,7 +63,7 @@ g_label_idx = 0
 def get_label():
     global g_label_idx
     g_label_idx += 1
-    return f'(label_{g_label_idx})'
+    return f'label_{g_label_idx}'
 
 
 class Command(object):
@@ -187,7 +188,7 @@ class CodeWriter(object):
                 'M=M-1',
                 # RAM[sp] += d
                 '@SP',
-                'A=M'
+                'A=M',
                 'M=M-D',
                 # sp++
                 '@SP',
@@ -205,6 +206,8 @@ class CodeWriter(object):
             ]
 
         def eq_func(command: Command) -> [str]:
+            final_label = get_label()
+            eq_label = get_label()
             return [
                 # RAM[sp - 1] = RAM[sp - 1] == RAM[sp - 2]
                 # sp = sp - 1
@@ -212,23 +215,109 @@ class CodeWriter(object):
                 'M=M-1',
                 'A=M',
                 'D=M',
+
                 '@SP',
                 'M=M-1',
                 'A=M',
                 'D=D-M',
-                f'{get_label()}',
+
+                f'@{eq_label}',
                 f'D;JEQ',
-                'M=0',
-                f'{get_label()}',
-                'M=-1',
+
+                # not equal
+                'D=0',
+
+                f'@{final_label}',
+                '0;JMP',
+
+                f'({eq_label})',
+                'D=-1',
+
+                f'({final_label})',
+                # RAM[sp] = D
+                '@SP',
+                'A=M',
+                'M=D',
+
+                # SP++
+                '@SP',
+                'M=M+1'
             ]
 
         def gt_func(command: Command) -> [str]:
-            return
+            final_label = get_label()
+            gt_label = get_label()
+            return [
+                # RAM[sp - 1] = RAM[sp - 1] == RAM[sp - 2]
+                # sp = sp - 1
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M',
+
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M-D',
+
+                f'@{gt_label}',
+                f'D;JGT',
+                # not equal
+                'D=0',
+
+                f'@{final_label}',
+                '0;JMP',
+
+                f'({gt_label})',
+                'D=-1',
+
+                f'({final_label})',
+                # RAM[sp] = D
+                '@SP',
+                'A=M',
+                'M=D',
+
+                # SP++
+                '@SP',
+                'M=M+1'
+            ]
 
         def lt_func(command: Command) -> [str]:
+            final_label = get_label()
+            lt_label = get_label()
             return [
+                # RAM[sp - 1] = RAM[sp - 1] == RAM[sp - 2]
+                # sp = sp - 1
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M',
 
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M-D',
+
+                f'@{lt_label}',
+                f'D;JLT',
+                # not equal
+                'D=0',
+
+                f'@{final_label}',
+                '0;JMP',
+
+                f'({lt_label})',
+                'D=-1',
+
+                f'({final_label})',
+                # RAM[sp] = D
+                '@SP',
+                'A=M',
+                'M=D',
+
+                # SP++
+                '@SP',
+                'M=M+1'
             ]
 
         def and_func(command: Command) -> [str]:
@@ -251,8 +340,8 @@ class CodeWriter(object):
                 'M=M-1',
                 # RAM[sp] += d
                 '@SP',
-                'A=M'
-                'M=M&D',
+                'A=M',
+                'M=D&M',
                 # sp++
                 '@SP',
                 'M=M+1'
@@ -278,8 +367,8 @@ class CodeWriter(object):
                 'M=M-1',
                 # RAM[sp] += d
                 '@SP',
-                'A=M'
-                'M=M|D',
+                'A=M',
+                'M=D|M',
                 # sp++
                 '@SP',
                 'M=M+1'
@@ -290,7 +379,7 @@ class CodeWriter(object):
                 # RAM[sp - 1] = !RAM[sp - 1]
                 '@SP',
                 'A=M',
-                'A=A-1'
+                'A=A-1',
                 'M=!M'
             ]
 
@@ -384,7 +473,7 @@ class CodeWriter(object):
                     'D=A',
                     '@SP',
                     'A=M',
-                    'M=D'
+                    'M=D',
                     '@SP',
                     'M=M+1'
                 ]
@@ -493,7 +582,10 @@ class VMTranslator(object):
 
 
 def main():
-    path = r'C:\Users\taojian\Desktop\nand2tetris\projects\07\StackTest\StackTest.vm'
+    import os
+    dirname = os.path.dirname(__file__)
+    dirname = os.path.dirname(dirname)
+    path = os.path.join(dirname, R'projects\07\StackTest\StackTest.vm')
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
