@@ -53,11 +53,11 @@ segments = {
 TEMP_SEGMENT_BASE_ADDRESS = 5 # 5 ~ 12
 STATIC_SEGMENT_BASE_ADDRESS = 16 # 16 ~ 255
 # 下面这些数字分别存放了指向了各个段起始地址的指针
-SP = 0
-LCL = 1
-ARG = 2
-THIS = 3
-THAT = 4
+#SP = 0
+#LCL = 1
+#ARG = 2
+#THIS = 3
+#THAT = 4
 
 g_label_idx = 0
 def get_label():
@@ -425,19 +425,16 @@ class CodeWriter(object):
                 # RAM[sp] = RAM[addr]
                 # sp--
                 f'@{segments[command.arg1()]}',
-                'D=A',
+                'D=M',
                 f'@{command.arg2()}',
-                'D=D+A',
-                '@R13',
-                'M=D',
-
-                '@R13',
+                'A=D+A',
                 'D=M',
                 '@SP',
+                'A=M',
                 'M=D',
 
                 '@SP',
-                'M=M-1',
+                'M=M+1',
             ]
 
         def push_static(command: Command) -> [str]:
@@ -460,33 +457,22 @@ class CodeWriter(object):
 
         def push_pointer(command: Command) -> [str]:
             if command.arg2() == 0:
-                # push THIS
-                return [
-                    # RAM[sp] = THIS
-                    # sp++
-                    '@THIS',
-                    'D=A',
-                    '@SP',
-                    'A=M',
-                    'M=D',
-                    '@SP',
-                    'M=M+1'
-                ]
+                # this
+                address = 3
             elif command.arg2() == 1:
-                # push THAT
-                return [
-                    # RAM[sp] = THAT
-                    # sp++
-                    '@THAT',
-                    'D=A',
-                    '@SP',
-                    'A=M',
-                    'M=D',
-                    '@SP',
-                    'M=M+1'
-                ]
+                # that
+                address = 4
             else:
-                assert False, "never reach here"
+                assert False
+            return [
+                f'@{address}',
+                'D=M',
+                '@SP',
+                'A=M',
+                'M=D',
+                '@SP',
+                'M=M+1',
+            ]
 
         segments = {
             LOCAL: push_local_argument_this_that,
@@ -516,18 +502,25 @@ class CodeWriter(object):
                 # addr = LCL + i
                 # sp--
                 # RAM[addr] = RAM[sp]
-                f'@{segments[command.arg1()]}',
-                'D=A',
-                f'@{command.arg2()}',
-                'D=D+A',
-                '@R13',
-                'M=D',
-
                 '@SP',
                 'M=M-1',
                 'A=M',
                 'D=M',
                 '@R13',
+                'M=D',
+
+                f'@{segments[command.arg1()]}',
+                'D=M',
+                f'@{command.arg2()}',
+                'D=D+A',
+                '@R14',
+                'M=D',
+
+                '@R13',
+                'D=M',
+
+                '@R14',
+                'A=M',
                 'M=D'
             ]
 
@@ -549,7 +542,22 @@ class CodeWriter(object):
             ]
 
         def pop_pointer(command: Command) -> [str]:
-            assert False
+            if command.arg2() == 0:
+                # this
+                address = 3
+            elif command.arg2() == 1:
+                # that
+                address = 4
+            else:
+                assert False
+            return [
+                '@SP',
+                'M=M-1',
+                'A=M',
+                'D=M',
+                f'@{address}',
+                'M=D'
+            ]
 
         segments = {
             LOCAL: pop_local_argument_this_that,
@@ -600,7 +608,7 @@ def main():
     import os
     dirname = os.path.dirname(__file__)
     dirname = os.path.dirname(dirname)
-    path = os.path.join(dirname, R'projects\07\StaticTest\StaticTest.vm')
+    path = os.path.join(dirname, R'projects\07\PointerTest\PointerTest.vm')
     vmTranslator = VMTranslator(path)
     vmTranslator.parse()
 
